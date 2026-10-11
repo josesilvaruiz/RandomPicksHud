@@ -23,6 +23,8 @@ public class HudConfig : BasePluginConfig
     [JsonPropertyName("RefreshSeconds")] public float RefreshSeconds { get; set; } = 5f;
     // Al entrar: true = se oculta la HUD central de SharpTimer y se usa esta; false = se ven las dos hasta que el jugador alterne.
     [JsonPropertyName("HideSharpTimerHudByDefault")] public bool HideSharpTimerHudByDefault { get; set; } = false;
+    // Si tiene algo, la HUD solo se muestra a estos SteamID64 (fase de pruebas). Vacío = todos.
+    [JsonPropertyName("OnlyForSteamIds")] public List<string> OnlyForSteamIds { get; set; } = new();
     // Misma fuente de tier/tipo que SharpTimer (sharptimer_remote_data). Vacío = no consultar.
     [JsonPropertyName("MapInfoUrl")] public string MapInfoUrl { get; set; } = "https://raw.githubusercontent.com/Letaryat/poor-SharpTimer/main/remote_data/surf_.json";
 }
@@ -83,7 +85,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
     [GameEventHandler(HookMode.Post)]
     public HookResult OnConnectFull(EventPlayerConnectFull e, GameEventInfo i)
     {
-        if (e.Userid is { IsBot: false } && !_recreatePending)
+        if (e.Userid is { IsBot: false } p && Allowed(p) && !_recreatePending)
         {
             _recreatePending = true;
             AddTimer(1.5f, () => { _recreatePending = false; Recreate(); });
@@ -95,7 +97,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
     [ConsoleCommand("css_rphud", "Switch between the Random Picks HUD and the SharpTimer HUD")]
     public void OnToggle(CCSPlayerController? p, CommandInfo c)
     {
-        if (p is null) return;
+        if (p is null || !Allowed(p)) return;
         var on = !_disabled.Remove(p.Slot);
         if (!on) _disabled.Add(p.Slot);
         SetSharpTimerHud(p.Slot, visible: !on);
@@ -236,9 +238,11 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
         foreach (var p in Utilities.GetPlayers()) Push(p);
     }
 
+    bool Allowed(CCSPlayerController p) => Config.OnlyForSteamIds.Count == 0 || Config.OnlyForSteamIds.Contains(p.SteamID.ToString());
+
     void Push(CCSPlayerController p)
     {
-        if (p is not { IsValid: true, IsBot: false } || _hud is not { IsValid: true }) return;
+        if (p is not { IsValid: true, IsBot: false } || _hud is not { IsValid: true } || !Allowed(p)) return;
         var hud = _hud;
         var hidden = _disabled.Contains(p.Slot);
         hud.SetHasClassForPlayer(p, "rp_left", "hidden", hidden);
@@ -309,7 +313,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
         var hud = _hud;
         foreach (var p in Utilities.GetPlayers())
         {
-            if (p is not { IsValid: true, IsBot: false, PawnIsAlive: true } || _disabled.Contains(p.Slot)) continue;
+            if (p is not { IsValid: true, IsBot: false, PawnIsAlive: true } || _disabled.Contains(p.Slot) || !Allowed(p)) continue;
             var pawn = p.PlayerPawn.Value;
             if (pawn is null) continue;
             var v = pawn.AbsVelocity;
