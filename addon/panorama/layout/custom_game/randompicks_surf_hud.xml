@@ -1,0 +1,88 @@
+<root>
+	<styles>
+		<include src="file://{resources}/styles/custom_game/randompicks_surf_hud.css" />
+	</styles>
+
+	<!--
+		HUD lateral del servidor surf de Random Picks. La entidad custom_hud_layout la crea el plugin SurfHud
+		y rellena cada Label por su variable de diálogo (mismo nombre que el id). Las etiquetas solo admiten
+		texto plano. Los dos paneles empiezan ocultos: el plugin quita la clase "hidden" cuando tiene datos. El panel raíz no puede llevar id.
+	-->
+	<Panel class="RpHud" hittest="false">
+
+		<Panel id="rp_left" class="Side SideLeft hidden" hittest="false">
+			<Label id="rp_map" class="MapName" hittest="false" text="{s:rp_map}" />
+			<Panel class="Row" hittest="false">
+				<Label class="Tag" hittest="false" text="SURF" />
+				<Label class="Sep" hittest="false" text="|" />
+				<Label id="rp_mode" class="Sub" hittest="false" text="{s:rp_mode}" />
+			</Panel>
+			<Panel class="Row Cols" hittest="false">
+				<Panel class="Col" hittest="false">
+					<Label class="Lbl" hittest="false" text="TIER" />
+					<Label id="rp_tier" class="Val" hittest="false" text="{s:rp_tier}" />
+				</Panel>
+				<Panel class="Col" hittest="false">
+					<Label class="Lbl" hittest="false" text="MAX VEL" />
+					<Label id="rp_maxvel" class="Val" hittest="false" text="{s:rp_maxvel}" />
+				</Panel>
+			</Panel>
+			<Panel class="Divider" hittest="false" />
+			<Label class="Section" hittest="false" text="FULL MAP" />
+			<Panel class="Row" hittest="false">
+				<Label class="Lbl Key" hittest="false" text="PERSONAL" />
+				<Label id="rp_pb" class="Val" hittest="false" text="{s:rp_pb}" />
+			</Panel>
+			<Panel class="Row" hittest="false">
+				<Label class="Lbl Key" hittest="false" text="RECORD" />
+				<Label id="rp_wr" class="Val Gold" hittest="false" text="{s:rp_wr}" />
+			</Panel>
+			<Panel class="Row" hittest="false">
+				<Label class="Lbl Key" hittest="false" text="RANK" />
+				<Label id="rp_rank" class="Val" hittest="false" text="{s:rp_rank}" />
+			</Panel>
+			<Panel class="Row" hittest="false">
+				<Label class="Lbl Key" hittest="false" text="FINISHES" />
+				<Label id="rp_fin" class="Val" hittest="false" text="{s:rp_fin}" />
+			</Panel>
+		</Panel>
+
+		<Panel id="rp_right" class="Side SideRight hidden" hittest="false">
+			<Panel class="Row Head" hittest="false">
+				<Label class="Title" hittest="false" text="MAP TOP" />
+				<Label class="Lbl Right" hittest="false" text="TOP 5" />
+			</Panel>
+			<Panel class="Row Header" hittest="false">
+				<Label class="Lbl Num" hittest="false" text="#" />
+				<Label class="Lbl Name" hittest="false" text="PLAYER" />
+				<Label class="Lbl Time" hittest="false" text="TIME" />
+			</Panel>
+			<Panel id="rp_top_0" class="Row Entry hidden" hittest="false">
+				<Label class="Val Num Gold" hittest="false" text="1" />
+				<Label id="rp_top_0_name" class="Val Name" hittest="false" text="{s:rp_top_0_name}" />
+				<Label id="rp_top_0_time" class="Val Time" hittest="false" text="{s:rp_top_0_time}" />
+			</Panel>
+			<Panel id="rp_top_1" class="Row Entry hidden" hittest="false">
+				<Label class="Val Num" hittest="false" text="2" />
+				<Label id="rp_top_1_name" class="Val Name" hittest="false" text="{s:rp_top_1_name}" />
+				<Label id="rp_top_1_time" class="Val Time" hittest="false" text="{s:rp_top_1_time}" />
+			</Panel>
+			<Panel id="rp_top_2" class="Row Entry hidden" hittest="false">
+				<Label class="Val Num" hittest="false" text="3" />
+				<Label id="rp_top_2_name" class="Val Name" hittest="false" text="{s:rp_top_2_name}" />
+				<Label id="rp_top_2_time" class="Val Time" hittest="false" text="{s:rp_top_2_time}" />
+			</Panel>
+			<Panel id="rp_top_3" class="Row Entry hidden" hittest="false">
+				<Label class="Val Num" hittest="false" text="4" />
+				<Label id="rp_top_3_name" class="Val Name" hittest="false" text="{s:rp_top_3_name}" />
+				<Label id="rp_top_3_time" class="Val Time" hittest="false" text="{s:rp_top_3_time}" />
+			</Panel>
+			<Panel id="rp_top_4" class="Row Entry hidden" hittest="false">
+				<Label class="Val Num" hittest="false" text="5" />
+				<Label id="rp_top_4_name" class="Val Name" hittest="false" text="{s:rp_top_4_name}" />
+				<Label id="rp_top_4_time" class="Val Time" hittest="false" text="{s:rp_top_4_time}" />
+			</Panel>
+		</Panel>
+
+	</Panel>
+</root>

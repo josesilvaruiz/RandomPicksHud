@@ -1,0 +1,202 @@
+/*
+	HUD lateral surf de Random Picks. Solo texto con sombra, sin cajas, como la HUD propia de CS2.
+	Clases que el servidor conmuta por jugador: hidden (en rp_hud y en cada fila rp_top_N).
+*/
+
+.RpHud
+{
+	width: 100%;
+	height: 100%;
+}
+
+.RpHud.hidden
+{
+	visibility: collapse;
+}
+
+/* No tapar el marcador ni la pantalla de fin de partida */
+.HUD_SCOREBOARD_VISIBLE .RpHud,
+.HUD_ENDOFMATCH_VISIBLE .RpHud
+{
+	visibility: collapse;
+}
+
+.hidden
+{
+	visibility: collapse;
+}
+
+/* ---- Paneles laterales ---- */
+
+.Side
+{
+	flow-children: down;
+	vertical-align: top;
+	margin-top: 400px;
+}
+
+.SideLeft
+{
+	horizontal-align: left;
+	margin-left: 24px;
+	width: 300px;
+}
+
+.SideRight
+{
+	horizontal-align: right;
+	margin-right: 24px;
+	width: 330px;
+}
+
+.Row
+{
+	flow-children: right;
+	margin-bottom: 4px;
+}
+
+.Cols
+{
+	margin-top: 10px;
+}
+
+.Col
+{
+	flow-children: down;
+	margin-right: 36px;
+}
+
+.Divider
+{
+	width: 260px;
+	height: 1px;
+	margin-top: 10px;
+	margin-bottom: 12px;
+	background-color: #ffffff40;
+}
+
+/* ---- Textos ---- */
+
+Label
+{
+	font-family: Stratum2, 'Arial Unicode MS';
+	color: #ECEFF4;
+	text-shadow: 0px 1px 3px 1.0 #000000cc;
+	text-overflow: clip;
+}
+
+.MapName
+{
+	font-size: 28px;
+	font-weight: bold;
+	margin-bottom: 2px;
+}
+
+.Tag
+{
+	font-size: 15px;
+	font-weight: bold;
+	letter-spacing: 2px;
+	color: #E6C068;
+}
+
+.Sep
+{
+	font-size: 15px;
+	color: #A7B1C2;
+	margin-left: 8px;
+	margin-right: 8px;
+}
+
+.Sub
+{
+	font-size: 15px;
+	color: #C9D1DC;
+}
+
+.Lbl
+{
+	font-size: 14px;
+	font-weight: bold;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	color: #A7B1C2;
+}
+
+.Section
+{
+	font-size: 15px;
+	font-weight: bold;
+	letter-spacing: 2px;
+	color: #E6C068;
+	margin-bottom: 8px;
+}
+
+.Key
+{
+	width: 110px;
+	margin-top: 3px;
+}
+
+.Val
+{
+	font-size: 19px;
+	font-weight: bold;
+}
+
+.Gold
+{
+	color: #E6C068;
+}
+
+/* ---- Panel derecho: tabla ---- */
+
+.Head
+{
+	margin-bottom: 10px;
+}
+
+.Title
+{
+	font-size: 17px;
+	font-weight: bold;
+	letter-spacing: 2px;
+	width: 260px;
+}
+
+.Right
+{
+	horizontal-align: right;
+	margin-top: 3px;
+}
+
+.Header
+{
+	margin-bottom: 8px;
+}
+
+.Entry
+{
+	margin-bottom: 8px;
+}
+
+.Num
+{
+	width: 40px;
+}
+
+.Name
+{
+	width: 170px;
+}
+
+.Time
+{
+	width: 120px;
+	text-align: right;
+}
+
+.Entry .Val
+{
+	font-size: 17px;
+}
