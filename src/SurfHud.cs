@@ -21,6 +21,8 @@ public class HudConfig : BasePluginConfig
     [JsonPropertyName("Layout")] public string Layout { get; set; } = "panorama/layout/custom_game/randompicks_surf_hud.xml";
     [JsonPropertyName("Mode")] public string Mode { get; set; } = "Standard";
     [JsonPropertyName("RefreshSeconds")] public float RefreshSeconds { get; set; } = 5f;
+    // Al entrar: true = se oculta la HUD central de SharpTimer y se usa esta; false = se ven las dos hasta que el jugador alterne.
+    [JsonPropertyName("HideSharpTimerHudByDefault")] public bool HideSharpTimerHudByDefault { get; set; } = false;
     // Misma fuente de tier/tipo que SharpTimer (sharptimer_remote_data). Vacío = no consultar.
     [JsonPropertyName("MapInfoUrl")] public string MapInfoUrl { get; set; } = "https://raw.githubusercontent.com/Letaryat/poor-SharpTimer/main/remote_data/surf_.json";
 }
@@ -42,6 +44,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
     CCSCustomHudLayout? _hud;
     bool _recreatePending;
     readonly HashSet<int> _disabled = new();
+    readonly HashSet<int> _stHidden = new(); // jugadores a los que ya se les ocultó la HUD de SharpTimer al entrar
     readonly ConcurrentDictionary<ulong, PlayerStat?> _stats = new();
     volatile IReadOnlyList<Row> _top = Array.Empty<Row>();
     int _finishes, _total;
@@ -59,11 +62,12 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
         RegisterListener<Listeners.OnServerPrecacheResources>(m => m.AddResource(Path.ChangeExtension(Config.Layout, ".vxml")));
         RegisterListener<Listeners.OnMapStart>(map =>
         {
-            _map = map; _hud = null; _stats.Clear(); _top = Array.Empty<Row>(); _tier = "-"; _type = "";
+            _map = map; _hud = null; _stats.Clear(); _live.Clear(); _top = Array.Empty<Row>(); _tier = "-"; _type = "";
             FetchMapInfo(map);
             Refresh();
         });
         AddTimer(Config.RefreshSeconds, Refresh, TimerFlags.REPEAT | TimerFlags.STOP_ON_MAPCHANGE);
+        RegisterListener<Listeners.OnTick>(OnTick);
         _map = Server.MapName;
         if (hotReload) { FetchMapInfo(_map); Refresh(); }
     }
@@ -87,14 +91,40 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
         return HookResult.Continue;
     }
 
-    [ConsoleCommand("css_hud", "Toggle the side HUD")]
+    // Alterna por jugador entre esta HUD y la central de SharpTimer (se ocultan la una a la otra).
+    [ConsoleCommand("css_rphud", "Switch between the Random Picks HUD and the SharpTimer HUD")]
     public void OnToggle(CCSPlayerController? p, CommandInfo c)
     {
         if (p is null) return;
         var on = !_disabled.Remove(p.Slot);
         if (!on) _disabled.Add(p.Slot);
-        p.PrintToChat($" Side HUD: {(on ? "on" : "off")}");
+        SetSharpTimerHud(p.Slot, visible: !on);
+        p.PrintToChat($" HUD: {(on ? "Random Picks" : "SharpTimer")} (type !rphud to switch)");
         Push(p);
+    }
+
+    // SharpTimer guarda por jugador si su HUD está oculta (lo mismo que hace su comando !hud).
+    void SetSharpTimerHud(int slot, bool visible)
+    {
+        try
+        {
+            if (_stTimers is not System.Collections.IDictionary dict || !dict.Contains(slot)) return;
+            var t = dict[slot]!;
+            t.GetType().GetProperty("HideTimerHud")?.SetValue(t, !visible);
+            t.GetType().GetProperty("HideKeys")?.SetValue(t, !visible);
+        }
+        catch (Exception ex) { Console.WriteLine($"[SurfHud] SharpTimer hud toggle: {ex.Message}"); }
+    }
+
+    [GameEventHandler]
+    public HookResult OnDisconnect(EventPlayerDisconnect e, GameEventInfo i)
+    {
+        if (e.Userid is { } p)
+        {
+            _disabled.Remove(p.Slot); _stHidden.Remove(p.Slot);
+            foreach (var k in _live.Keys.Where(k => k.Slot == p.Slot).ToList()) _live.Remove(k);
+        }
+        return HookResult.Continue;
     }
 
     [ConsoleCommand("css_hudreload", "Recreate the side HUD entity")]
@@ -113,6 +143,12 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
         hud.StrLayout = Config.Layout;
         hud.DispatchSpawn(kv);
         _hud = hud;
+        Server.NextFrame(() =>
+        {
+            if (_hud is { IsValid: true })
+                Console.WriteLine($"[SurfHud] custom_hud_layout #{_hud.Index} layout='{_hud.StrLayout}' panels={_hud.PanelIds.Count} vars={_hud.DialogVariableNames.Count} states={_hud.PlayerLayoutStates.Count}");
+            else Console.WriteLine("[SurfHud] custom_hud_layout became invalid right after spawn");
+        });
         return true;
     }
 
@@ -120,6 +156,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
     {
         var old = _hud;
         _hud = null;
+        _live.Clear(); // entidad nueva: el cliente parte de cero, hay que reenviarlo todo
         if (!EnsureHud()) return;
         if (old is { IsValid: true }) old.Remove();
         PushAll();
@@ -229,6 +266,78 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
             Set($"rp_top_{i}_name", top[i].Name.Length > 18 ? top[i].Name[..18] : top[i].Name);
             Set($"rp_top_{i}_time", Fmt(top[i].Ticks));
         }
+    }
+
+    // ---- Parte de abajo: velocidad, cronómetro y teclas, 32 veces por segundo y solo lo que cambia ----
+
+    readonly Dictionary<(int Slot, string Id), string> _live = new();
+    object? _stTimers;          // SharpTimer.Instance.playerTimers (Dictionary<int, PlayerTimerInfo>), por reflexión
+    bool _stLookedUp;
+
+    // El estado del cronómetro vive dentro de SharpTimer; se lee por reflexión para no depender de su DLL.
+    // Si cambia su estructura, el cronómetro se muestra parado y el resto de la HUD sigue funcionando.
+    (bool Running, int Ticks)? TimerOf(int slot)
+    {
+        try
+        {
+            if (!_stLookedUp)
+            {
+                _stLookedUp = true;
+                const System.Reflection.BindingFlags Any = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance;
+                var asm = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "SharpTimer");
+                var type = asm?.GetTypes().FirstOrDefault(t => t.Name == "SharpTimer" && t.GetMember("playerTimers", Any).Length > 0);
+                var instM = type?.GetProperty("Instance", Any) as System.Reflection.MemberInfo ?? type?.GetField("Instance", Any);
+                var inst = instM is System.Reflection.PropertyInfo pi ? pi.GetValue(null) : (instM as System.Reflection.FieldInfo)?.GetValue(null);
+                var ptM = inst?.GetType().GetField("playerTimers", Any) as System.Reflection.MemberInfo ?? inst?.GetType().GetProperty("playerTimers", Any);
+                _stTimers = ptM is System.Reflection.FieldInfo fi ? fi.GetValue(inst) : (ptM as System.Reflection.PropertyInfo)?.GetValue(inst);
+                Console.WriteLine($"[SurfHud] SharpTimer timers {(_stTimers is null ? "NOT found" : "found")} (asm={(asm is null ? "no" : "yes")} type={(type is null ? "no" : type.FullName)} instance={(inst is null ? "no" : "yes")})");
+            }
+            if (_stTimers is not System.Collections.IDictionary dict || !dict.Contains(slot)) return null;
+            var t = dict[slot]!;
+            var ty = t.GetType();
+            var bonus = (bool)(ty.GetProperty("IsBonusTimerRunning")?.GetValue(t) ?? false);
+            var running = bonus || (bool)(ty.GetProperty("IsTimerRunning")?.GetValue(t) ?? false);
+            var ticks = (int)(ty.GetProperty(bonus ? "BonusTimerTicks" : "TimerTicks")?.GetValue(t) ?? 0);
+            return (running, ticks);
+        }
+        catch { return null; }
+    }
+
+    void OnTick()
+    {
+        if (Server.TickCount % 2 != 0 || _hud is not { IsValid: true }) return;
+        var hud = _hud;
+        foreach (var p in Utilities.GetPlayers())
+        {
+            if (p is not { IsValid: true, IsBot: false, PawnIsAlive: true } || _disabled.Contains(p.Slot)) continue;
+            var pawn = p.PlayerPawn.Value;
+            if (pawn is null) continue;
+            var v = pawn.AbsVelocity;
+            var speed = Math.Round(Math.Sqrt(v.X * v.X + v.Y * v.Y));
+            var t = TimerOf(p.Slot);
+            var b = p.Buttons;
+            var keys = $"{(b.HasFlag(PlayerButtons.Moveleft) ? "A" : "_")} {(b.HasFlag(PlayerButtons.Forward) ? "W" : "_")} " +
+                       $"{(b.HasFlag(PlayerButtons.Back) ? "S" : "_")} {(b.HasFlag(PlayerButtons.Moveright) ? "D" : "_")} " +
+                       $"{(b.HasFlag(PlayerButtons.Jump) ? "J" : "_")} {(b.HasFlag(PlayerButtons.Duck) ? "C" : "_")}";
+            Live(hud, p, "rp_speed", $"{speed:0}");
+            Live(hud, p, "rp_time", t is { Running: true } ? Fmt(t.Value.Ticks) : "00:00.000");
+            Live(hud, p, "rp_timestate", t is { Running: true } ? "RUNNING" : "STOPPED");
+            Live(hud, p, "rp_keys", keys);
+            if (!_live.ContainsKey((p.Slot, "rp_bottom")))
+            {
+                hud.SetHasClassForPlayer(p, "rp_bottom", "hidden", false);
+                _live[(p.Slot, "rp_bottom")] = "on";
+                if (Config.HideSharpTimerHudByDefault && !_stHidden.Contains(p.Slot)) { _stHidden.Add(p.Slot); SetSharpTimerHud(p.Slot, visible: false); }
+            }
+        }
+    }
+
+    void Live(CCSCustomHudLayout hud, CCSPlayerController p, string id, string value)
+    {
+        var k = (p.Slot, id);
+        if (_live.TryGetValue(k, out var old) && old == value) return;
+        _live[k] = value;
+        hud.SetDialogVariableStringForPlayer(p, id, id, value);
     }
 
     string BuildConnectionString()

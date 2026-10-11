@@ -200,3 +200,59 @@ Label
 {
 	font-size: 17px;
 }
+
+/* ---- Abajo: velocidad y cronómetro ---- */
+
+.Bottom
+{
+	flow-children: down;
+	horizontal-align: center;
+	vertical-align: bottom;
+	margin-bottom: 110px;
+}
+
+.Big
+{
+	horizontal-align: center;
+	margin-bottom: 2px;
+}
+
+.Stat
+{
+	flow-children: down;
+	width: 190px;
+}
+
+.VSep
+{
+	width: 1px;
+	height: 44px;
+	margin: 6px 14px 0px 14px;
+	background-color: #ffffff55;
+}
+
+.BigVal
+{
+	font-size: 38px;
+	font-weight: bold;
+	horizontal-align: center;
+}
+
+.Mono
+{
+	font-family: 'Stratum2 Bold Monodigit', 'Noto Mono', Stratum2;
+}
+
+.Center
+{
+	horizontal-align: center;
+}
+
+.Keys
+{
+	font-size: 16px;
+	letter-spacing: 6px;
+	color: #C9D1DC;
+	horizontal-align: center;
+	margin-top: 4px;
+}

@@ -84,5 +84,21 @@
 			</Panel>
 		</Panel>
 
+		<!-- Abajo, centrado: velocidad actual y cronómetro (se actualizan varias veces por segundo) -->
+		<Panel id="rp_bottom" class="Bottom hidden" hittest="false">
+			<Panel class="Row Big" hittest="false">
+				<Panel class="Stat" hittest="false">
+					<Label id="rp_speed" class="BigVal Mono" hittest="false" text="{s:rp_speed}" />
+					<Label class="Lbl Center" hittest="false" text="SPEED" />
+				</Panel>
+				<Panel class="VSep" hittest="false" />
+				<Panel class="Stat" hittest="false">
+					<Label id="rp_time" class="BigVal Mono" hittest="false" text="{s:rp_time}" />
+					<Label id="rp_timestate" class="Lbl Center" hittest="false" text="{s:rp_timestate}" />
+				</Panel>
+			</Panel>
+			<Label id="rp_keys" class="Keys Mono" hittest="false" text="{s:rp_keys}" />
+		</Panel>
+
 	</Panel>
 </root>
