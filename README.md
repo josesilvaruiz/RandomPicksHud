@@ -22,6 +22,8 @@ Paneles (mismo DLL para surf y minigames):
 - `ShowSidePanels` (por defecto `true`): paneles laterales (mapa, tier, PB, récord, rank, finishes y top 5 de SharpTimer).
   Llevan la etiqueta fija «SURF» del layout. Con `false` no se muestran ni se consulta MySQL ni `MapInfoUrl`.
 - `ShowBottomPanel` (por defecto `true`): panel inferior con velocidad, cronómetro de SharpTimer (+ sync) y teclas.
+- `Watermark` (por defecto `"RANDOM PICKS"`, vacío = sin marca): se añade al modo del panel izquierdo
+  (`STANDARD  ·  RANDOM PICKS`) y sustituye a `STOPPED` bajo el cronómetro cuando está parado.
 
 Surf: valores por defecto. Minigames: `"ShowSidePanels": false`, `"MapInfoUrl": ""` (solo velocidad, cronómetro de
 SharpTimer en los mapas con zonas y teclas).

@@ -31,6 +31,8 @@ public class HudConfig : BasePluginConfig
     [JsonPropertyName("ShowSidePanels")] public bool ShowSidePanels { get; set; } = true;
     // Panel inferior: velocidad, cronómetro de SharpTimer y teclas.
     [JsonPropertyName("ShowBottomPanel")] public bool ShowBottomPanel { get; set; } = true;
+    // Marca de agua: tras el modo en el panel izquierdo y en lugar de "STOPPED" con el cronómetro parado. Vacío = sin marca.
+    [JsonPropertyName("Watermark")] public string Watermark { get; set; } = "RANDOM PICKS";
 }
 
 record Row(string Name, int Ticks);
@@ -272,7 +274,8 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
         void Set(string id, string v) => hud.SetDialogVariableStringForPlayer(p, id, id, v);
 
         Set("rp_map", _map);
-        Set("rp_mode", _type.Length > 0 ? _type.ToUpperInvariant() : Config.Mode.ToUpperInvariant());
+        var mode = _type.Length > 0 ? _type.ToUpperInvariant() : Config.Mode.ToUpperInvariant();
+        Set("rp_mode", Config.Watermark.Length > 0 ? $"{mode}  ·  {Config.Watermark}" : mode);
         Set("rp_tier", _tier);
         Set("rp_maxvel", $"{maxVel:0}");
         Set("rp_pb", st is null ? "-" : Fmt(st.Ticks));
@@ -344,7 +347,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
             Live(hud, p, "rp_speed", $"{speed:0}");
             Live(hud, p, "rp_time", t is { Running: true } ? Fmt(t.Value.Ticks) : "00:00.000");
             // El sync va en la etiqueta de estado: el layout publicado no tiene otra y así no hay que republicar el pack.
-            Live(hud, p, "rp_timestate", t is { Running: true } ? $"RUNNING  ·  SYNC {t.Value.Sync:0.0}%" : "STOPPED");
+            Live(hud, p, "rp_timestate", t is { Running: true } ? $"RUNNING  ·  SYNC {t.Value.Sync:0.0}%" : Config.Watermark.Length > 0 ? Config.Watermark : "STOPPED");
             Live(hud, p, "rp_keys", keys);
             if (!_live.ContainsKey((p.Slot, "rp_bottom")))
             {
