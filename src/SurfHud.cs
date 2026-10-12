@@ -217,6 +217,9 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
 
     void Refresh()
     {
+        // Como los laterales: el panel de abajo se reenvía entero cada RefreshSeconds. CS2 borra los textos de la HUD a
+        // quien ya estaba dentro cuando entra otro jugador o al volver de espectador, y con la caché no se reenviaban.
+        _live.Clear();
         // Sin paneles laterales no hay nada que refrescar. Tampoco se crea la entidad aquí: desde OnMapStart, con el mapa
         // a medio cargar, tumbaba el servidor (segfault en minigames). La crean la entrada/aparición de los jugadores.
         if (!Config.ShowSidePanels) return;
