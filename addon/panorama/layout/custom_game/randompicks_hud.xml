@@ -1,10 +1,10 @@
 <root>
 	<styles>
-		<include src="file://{resources}/styles/custom_game/randompicks_surf_hud.css" />
+		<include src="file://{resources}/styles/custom_game/randompicks_hud.css" />
 	</styles>
 
 	<!--
-		HUD lateral del servidor surf de Random Picks. La entidad custom_hud_layout la crea el plugin SurfHud
+		HUD Panorama de Random Picks (surf, bhop, minigames...). La entidad custom_hud_layout la crea el plugin RandomPicksHud
 		y rellena cada Label por su variable de diálogo (mismo nombre que el id). Las etiquetas solo admiten
 		texto plano. Los dos paneles empiezan ocultos: el plugin quita la clase "hidden" cuando tiene datos. El panel raíz no puede llevar id.
 	-->

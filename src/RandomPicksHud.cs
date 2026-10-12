@@ -13,12 +13,12 @@ using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Utils;
 using MySqlConnector;
 
-namespace SurfHud;
+namespace RandomPicksHud;
 
 public class HudConfig : BasePluginConfig
 {
     // Nombre FUENTE (.xml) del layout dentro del addon de Workshop; el cliente rechaza ".vxml" aquí.
-    [JsonPropertyName("Layout")] public string Layout { get; set; } = "panorama/layout/custom_game/randompicks_surf_hud.xml";
+    [JsonPropertyName("Layout")] public string Layout { get; set; } = "panorama/layout/custom_game/randompicks_hud.xml";
     [JsonPropertyName("Mode")] public string Mode { get; set; } = "Standard";
     [JsonPropertyName("RefreshSeconds")] public float RefreshSeconds { get; set; } = 5f;
     // Al entrar: true = se oculta la HUD central de SharpTimer y se usa esta; false = se ven las dos hasta que el jugador alterne.
@@ -27,7 +27,7 @@ public class HudConfig : BasePluginConfig
     [JsonPropertyName("OnlyForSteamIds")] public List<string> OnlyForSteamIds { get; set; } = new();
     // Misma fuente de tier/tipo que SharpTimer (sharptimer_remote_data). Vacío = no consultar.
     [JsonPropertyName("MapInfoUrl")] public string MapInfoUrl { get; set; } = "https://raw.githubusercontent.com/Letaryat/poor-SharpTimer/main/remote_data/surf_.json";
-    // Paneles laterales (mapa/tier/PB/récord y top 5, con la etiqueta fija "SURF"). false = ni se muestran ni se consulta MySQL.
+    // Paneles laterales (mapa, tipo de mapa, tier, PB, récord y top 5). false = ni se muestran ni se consulta MySQL.
     [JsonPropertyName("ShowSidePanels")] public bool ShowSidePanels { get; set; } = true;
     // Panel inferior: velocidad, cronómetro de SharpTimer y teclas.
     [JsonPropertyName("ShowBottomPanel")] public bool ShowBottomPanel { get; set; } = true;
@@ -43,10 +43,12 @@ record PlayerStat(int Ticks, int Rank);
 /// del servidor y que el plugin rellena por jugador con los datos de SharpTimer (MySQL). Técnica de z4lab SurfTimer.
 /// </summary>
 [MinimumApiVersion(300)]
-public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
+public class RandomPicksHud : BasePlugin, IPluginConfig<HudConfig>
 {
-    public override string ModuleName => "SurfHud";
-    public override string ModuleVersion => "1.0.0";
+    public override string ModuleName => "RandomPicksHud";
+    public override string ModuleVersion => "1.1.0";
+    public override string ModuleAuthor => "Random Picks";
+    public override string ModuleDescription => "Panorama HUD (custom_hud_layout) for SharpTimer servers: map info, records, top 5, speed, timer, sync and keys";
     public HudConfig Config { get; set; } = new();
 
     CCSCustomHudLayout? _hud;
@@ -122,7 +124,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
             t.GetType().GetProperty("HideTimerHud")?.SetValue(t, !visible);
             t.GetType().GetProperty("HideKeys")?.SetValue(t, !visible);
         }
-        catch (Exception ex) { Console.WriteLine($"[SurfHud] SharpTimer hud toggle: {ex.Message}"); }
+        catch (Exception ex) { Console.WriteLine($"[RandomPicksHud] SharpTimer hud toggle: {ex.Message}"); }
     }
 
     [GameEventHandler]
@@ -145,7 +147,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
         if (_spawned.Add(p.Slot) && !_stHidden.Contains(p.Slot) && !_recreatePending)
         {
             _recreatePending = true;
-            AddTimer(2f, () => { _recreatePending = false; Recreate(); Console.WriteLine($"[SurfHud] recreated after spawn of {p.PlayerName}"); });
+            AddTimer(2f, () => { _recreatePending = false; Recreate(); Console.WriteLine($"[RandomPicksHud] recreated after spawn of {p.PlayerName}"); });
             return HookResult.Continue;
         }
         var slot = p.Slot;
@@ -167,7 +169,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
         foreach (var stale in Utilities.FindAllEntitiesByDesignerName<CCSCustomHudLayout>("custom_hud_layout"))
             if (stale.IsValid && stale.StrLayout == Config.Layout) stale.Remove();
         var hud = Utilities.CreateEntityByName<CCSCustomHudLayout>("custom_hud_layout");
-        if (hud is null || !hud.IsValid) { Console.WriteLine("[SurfHud] could not create custom_hud_layout"); return false; }
+        if (hud is null || !hud.IsValid) { Console.WriteLine("[RandomPicksHud] could not create custom_hud_layout"); return false; }
         var kv = new CEntityKeyValues();
         kv.SetString("layout", Config.Layout);
         hud.StrLayout = Config.Layout;
@@ -176,8 +178,8 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
         Server.NextFrame(() =>
         {
             if (_hud is { IsValid: true })
-                Console.WriteLine($"[SurfHud] custom_hud_layout #{_hud.Index} layout='{_hud.StrLayout}' panels={_hud.PanelIds.Count} vars={_hud.DialogVariableNames.Count} states={_hud.PlayerLayoutStates.Count}");
-            else Console.WriteLine("[SurfHud] custom_hud_layout became invalid right after spawn");
+                Console.WriteLine($"[RandomPicksHud] custom_hud_layout #{_hud.Index} layout='{_hud.StrLayout}' panels={_hud.PanelIds.Count} vars={_hud.DialogVariableNames.Count} states={_hud.PlayerLayoutStates.Count}");
+            else Console.WriteLine("[RandomPicksHud] custom_hud_layout became invalid right after spawn");
         });
         return true;
     }
@@ -211,7 +213,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
                 var type = info.TryGetProperty("Type", out var ty) ? ty.ToString() : "";
                 Server.NextFrame(() => { if (_map == map) { _tier = tier; _type = type; PushAll(); } });
             }
-            catch (Exception ex) { Console.WriteLine($"[SurfHud] map info: {ex.Message}"); }
+            catch (Exception ex) { Console.WriteLine($"[RandomPicksHud] map info: {ex.Message}"); }
         });
     }
 
@@ -262,7 +264,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
                 _top = top; _finishes = finishes; _total = total;
                 Server.NextFrame(PushAll);
             }
-            catch (Exception ex) { Console.WriteLine($"[SurfHud] database: {ex.Message}"); }
+            catch (Exception ex) { Console.WriteLine($"[RandomPicksHud] database: {ex.Message}"); }
         });
     }
 
@@ -342,7 +344,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
                 var inst = instM is System.Reflection.PropertyInfo pi ? pi.GetValue(null) : (instM as System.Reflection.FieldInfo)?.GetValue(null);
                 var ptM = inst?.GetType().GetField("playerTimers", Any) as System.Reflection.MemberInfo ?? inst?.GetType().GetProperty("playerTimers", Any);
                 _stTimers = ptM is System.Reflection.FieldInfo fi ? fi.GetValue(inst) : (ptM as System.Reflection.PropertyInfo)?.GetValue(inst);
-                Console.WriteLine($"[SurfHud] SharpTimer timers {(_stTimers is null ? "NOT found" : "found")} (asm={(asm is null ? "no" : "yes")} type={(type is null ? "no" : type.FullName)} instance={(inst is null ? "no" : "yes")})");
+                Console.WriteLine($"[RandomPicksHud] SharpTimer timers {(_stTimers is null ? "NOT found" : "found")} (asm={(asm is null ? "no" : "yes")} type={(type is null ? "no" : type.FullName)} instance={(inst is null ? "no" : "yes")})");
             }
             if (_stTimers is not System.Collections.IDictionary dict || !dict.Contains(slot)) return null;
             var t = dict[slot]!;

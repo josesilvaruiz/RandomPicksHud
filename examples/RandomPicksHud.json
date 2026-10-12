@@ -1,0 +1,12 @@
+{
+  "Layout": "panorama/layout/custom_game/randompicks_hud.xml",
+  "Mode": "Standard",
+  "RefreshSeconds": 5,
+  "HideSharpTimerHudByDefault": true,
+  "OnlyForSteamIds": [],
+  "MapInfoUrl": "https://raw.githubusercontent.com/Letaryat/poor-SharpTimer/main/remote_data/surf_.json",
+  "ShowSidePanels": true,
+  "ShowBottomPanel": true,
+  "Watermark": "RANDOM PICKS",
+  "ConfigVersion": 1
+}
