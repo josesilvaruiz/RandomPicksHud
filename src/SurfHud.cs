@@ -272,6 +272,18 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
         foreach (var p in Utilities.GetPlayers()) Push(p);
     }
 
+    // Tipo de mapa para la etiqueta del panel izquierdo (rp_kind), por el prefijo del nombre. Los packs antiguos
+    // llevan «SURF» fijo y simplemente ignoran la variable.
+    static readonly Dictionary<string, string> Kinds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["surf"] = "SURF", ["bhop"] = "BHOP", ["mg"] = "MG", ["kz"] = "KZ", ["dr"] = "DEATHRUN", ["deathrun"] = "DEATHRUN", ["jb"] = "JAIL",
+    };
+    static string Kind(string map)
+    {
+        var prefix = map.Split('_', 2)[0];
+        return Kinds.TryGetValue(prefix, out var kind) ? kind : prefix.Length is > 0 and <= 10 && map.Contains('_') ? prefix.ToUpperInvariant() : "MAP";
+    }
+
     bool Allowed(CCSPlayerController p) => Config.OnlyForSteamIds.Count == 0 || Config.OnlyForSteamIds.Contains(p.SteamID.ToString());
 
     void Push(CCSPlayerController p)
@@ -289,6 +301,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
         void Set(string id, string v) => hud.SetDialogVariableStringForPlayer(p, id, id, v);
 
         Set("rp_map", _map);
+        Set("rp_kind", Kind(_map));
         var mode = _type.Length > 0 ? _type.ToUpperInvariant() : Config.Mode.ToUpperInvariant();
         Set("rp_mode", Config.Watermark.Length > 0 ? $"{mode}  ·  {Config.Watermark}" : mode);
         Set("rp_tier", _tier);

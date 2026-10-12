@@ -13,7 +13,7 @@
 		<Panel id="rp_left" class="Side SideLeft hidden" hittest="false">
 			<Label id="rp_map" class="MapName" hittest="false" text="{s:rp_map}" />
 			<Panel class="Row" hittest="false">
-				<Label class="Tag" hittest="false" text="SURF" />
+				<Label id="rp_kind" class="Tag" hittest="false" text="{s:rp_kind}" />
 				<Label class="Sep" hittest="false" text="|" />
 				<Label id="rp_mode" class="Sub" hittest="false" text="{s:rp_mode}" />
 			</Panel>
