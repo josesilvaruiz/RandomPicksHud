@@ -129,6 +129,18 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
         return HookResult.Continue;
     }
 
+    // Por si connect_full llega antes de que el cliente esté del todo dentro: también tras su primera aparición.
+    [GameEventHandler(HookMode.Post)]
+    public HookResult OnSpawn(EventPlayerSpawn e, GameEventInfo i)
+    {
+        if (e.Userid is { IsBot: false } p && Allowed(p) && !_stHidden.Contains(p.Slot) && !_live.Keys.Any(k => k.Slot == p.Slot) && !_recreatePending)
+        {
+            _recreatePending = true;
+            AddTimer(2f, () => { _recreatePending = false; Recreate(); Console.WriteLine($"[SurfHud] recreated after spawn of {p.PlayerName}"); });
+        }
+        return HookResult.Continue;
+    }
+
     [ConsoleCommand("css_hudreload", "Recreate the side HUD entity")]
     [RequiresPermissions("@css/root")]
     public void OnReload(CCSPlayerController? p, CommandInfo c) { Recreate(); c.ReplyToCommand("HUD recreated"); }
@@ -280,7 +292,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
 
     // El estado del cronómetro vive dentro de SharpTimer; se lee por reflexión para no depender de su DLL.
     // Si cambia su estructura, el cronómetro se muestra parado y el resto de la HUD sigue funcionando.
-    (bool Running, int Ticks)? TimerOf(int slot)
+    (bool Running, int Ticks, float Sync)? TimerOf(int slot)
     {
         try
         {
@@ -302,7 +314,8 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
             var bonus = (bool)(ty.GetProperty("IsBonusTimerRunning")?.GetValue(t) ?? false);
             var running = bonus || (bool)(ty.GetProperty("IsTimerRunning")?.GetValue(t) ?? false);
             var ticks = (int)(ty.GetProperty(bonus ? "BonusTimerTicks" : "TimerTicks")?.GetValue(t) ?? 0);
-            return (running, ticks);
+            var sync = Convert.ToSingle(ty.GetProperty("Sync")?.GetValue(t) ?? ty.GetField("Sync")?.GetValue(t) ?? 0f);
+            return (running, ticks, sync);
         }
         catch { return null; }
     }
@@ -325,7 +338,8 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
                        $"{(b.HasFlag(PlayerButtons.Jump) ? "J" : "_")} {(b.HasFlag(PlayerButtons.Duck) ? "C" : "_")}";
             Live(hud, p, "rp_speed", $"{speed:0}");
             Live(hud, p, "rp_time", t is { Running: true } ? Fmt(t.Value.Ticks) : "00:00.000");
-            Live(hud, p, "rp_timestate", t is { Running: true } ? "RUNNING" : "STOPPED");
+            // El sync va en la etiqueta de estado: el layout publicado no tiene otra y así no hay que republicar el pack.
+            Live(hud, p, "rp_timestate", t is { Running: true } ? $"RUNNING  ·  SYNC {t.Value.Sync:0.0}%" : "STOPPED");
             Live(hud, p, "rp_keys", keys);
             if (!_live.ContainsKey((p.Slot, "rp_bottom")))
             {
