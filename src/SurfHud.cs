@@ -347,7 +347,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
             Live(hud, p, "rp_speed", $"{speed:0}");
             Live(hud, p, "rp_time", t is { Running: true } ? Fmt(t.Value.Ticks) : "00:00.000");
             // El sync va en la etiqueta de estado: el layout publicado no tiene otra y así no hay que republicar el pack.
-            Live(hud, p, "rp_timestate", t is { Running: true } ? $"RUNNING  ·  SYNC {t.Value.Sync:0.0}%" : Config.Watermark.Length > 0 ? Config.Watermark : "STOPPED");
+            Live(hud, p, "rp_timestate", t is { Running: true } ? $"SYNC {t.Value.Sync:0.0}%" : Config.Watermark.Length > 0 ? Config.Watermark : "STOPPED");
             Live(hud, p, "rp_keys", keys);
             if (!_live.ContainsKey((p.Slot, "rp_bottom")))
             {
