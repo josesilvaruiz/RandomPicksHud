@@ -207,7 +207,9 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
 
     void Refresh()
     {
-        if (!Config.ShowSidePanels) { PushAll(); return; }
+        // Sin paneles laterales no hay nada que refrescar. Tampoco se crea la entidad aquí: desde OnMapStart, con el mapa
+        // a medio cargar, tumbaba el servidor (segfault en minigames). La crean la entrada/aparición de los jugadores.
+        if (!Config.ShowSidePanels) return;
         var map = _map;
         var mode = Config.Mode;
         var players = Utilities.GetPlayers().Where(p => p is { IsValid: true, IsBot: false, SteamID: > 0 }).Select(p => p.SteamID).ToList();
