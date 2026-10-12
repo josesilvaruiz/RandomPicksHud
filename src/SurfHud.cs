@@ -27,6 +27,10 @@ public class HudConfig : BasePluginConfig
     [JsonPropertyName("OnlyForSteamIds")] public List<string> OnlyForSteamIds { get; set; } = new();
     // Misma fuente de tier/tipo que SharpTimer (sharptimer_remote_data). Vacío = no consultar.
     [JsonPropertyName("MapInfoUrl")] public string MapInfoUrl { get; set; } = "https://raw.githubusercontent.com/Letaryat/poor-SharpTimer/main/remote_data/surf_.json";
+    // Paneles laterales (mapa/tier/PB/récord y top 5, con la etiqueta fija "SURF"). false = ni se muestran ni se consulta MySQL.
+    [JsonPropertyName("ShowSidePanels")] public bool ShowSidePanels { get; set; } = true;
+    // Panel inferior: velocidad, cronómetro de SharpTimer y teclas.
+    [JsonPropertyName("ShowBottomPanel")] public bool ShowBottomPanel { get; set; } = true;
 }
 
 record Row(string Name, int Ticks);
@@ -59,7 +63,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
 
     public override void Load(bool hotReload)
     {
-        _connStr = BuildConnectionString();
+        if (Config.ShowSidePanels) _connStr = BuildConnectionString();
         // El manifest quiere el recurso compilado (.vxml); la entidad, el nombre fuente (.xml).
         RegisterListener<Listeners.OnServerPrecacheResources>(m => m.AddResource(Path.ChangeExtension(Config.Layout, ".vxml")));
         RegisterListener<Listeners.OnMapStart>(map =>
@@ -184,7 +188,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
 
     void FetchMapInfo(string map)
     {
-        if (string.IsNullOrEmpty(Config.MapInfoUrl)) return;
+        if (!Config.ShowSidePanels || string.IsNullOrEmpty(Config.MapInfoUrl)) return;
         Task.Run(async () =>
         {
             try
@@ -201,6 +205,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
 
     void Refresh()
     {
+        if (!Config.ShowSidePanels) { PushAll(); return; }
         var map = _map;
         var mode = Config.Mode;
         var players = Utilities.GetPlayers().Where(p => p is { IsValid: true, IsBot: false, SteamID: > 0 }).Select(p => p.SteamID).ToList();
@@ -256,7 +261,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
     {
         if (p is not { IsValid: true, IsBot: false } || _hud is not { IsValid: true } || !Allowed(p)) return;
         var hud = _hud;
-        var hidden = _disabled.Contains(p.Slot);
+        var hidden = _disabled.Contains(p.Slot) || !Config.ShowSidePanels;
         hud.SetHasClassForPlayer(p, "rp_left", "hidden", hidden);
         hud.SetHasClassForPlayer(p, "rp_right", "hidden", hidden);
         if (hidden) return;
@@ -322,7 +327,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
 
     void OnTick()
     {
-        if (Server.TickCount % 2 != 0 || _hud is not { IsValid: true }) return;
+        if (!Config.ShowBottomPanel || Server.TickCount % 2 != 0 || _hud is not { IsValid: true }) return;
         var hud = _hud;
         foreach (var p in Utilities.GetPlayers())
         {

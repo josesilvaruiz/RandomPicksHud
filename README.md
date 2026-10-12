@@ -16,3 +16,12 @@ resourcecompiler.exe -nop4 -i "<CS2>\content\csgo_addons\randompicks_hud\panoram
 
 Comandos: `!hud` (ocultar/mostrar para ti), `!hudreload` (admin: recrear la entidad).
 Config: `configs/plugins/SurfHud/SurfHud.json` (`Layout` debe ser el nombre fuente `.xml`).
+
+Paneles (mismo DLL para surf y minigames):
+
+- `ShowSidePanels` (por defecto `true`): paneles laterales (mapa, tier, PB, récord, rank, finishes y top 5 de SharpTimer).
+  Llevan la etiqueta fija «SURF» del layout. Con `false` no se muestran ni se consulta MySQL ni `MapInfoUrl`.
+- `ShowBottomPanel` (por defecto `true`): panel inferior con velocidad, cronómetro de SharpTimer (+ sync) y teclas.
+
+Surf: valores por defecto. Minigames: `"ShowSidePanels": false`, `"MapInfoUrl": ""` (solo velocidad, cronómetro de
+SharpTimer en los mapas con zonas y teclas).
