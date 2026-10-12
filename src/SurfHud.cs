@@ -52,6 +52,7 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
     CCSCustomHudLayout? _hud;
     bool _recreatePending;
     readonly HashSet<int> _disabled = new();
+    readonly HashSet<int> _spawned = new();  // ya aparecieron una vez desde que entraron
     readonly HashSet<int> _stHidden = new(); // jugadores a los que ya se les ocultó la HUD de SharpTimer al entrar
     readonly ConcurrentDictionary<ulong, PlayerStat?> _stats = new();
     volatile IReadOnlyList<Row> _top = Array.Empty<Row>();
@@ -129,21 +130,30 @@ public class SurfHud : BasePlugin, IPluginConfig<HudConfig>
     {
         if (e.Userid is { } p)
         {
-            _disabled.Remove(p.Slot); _stHidden.Remove(p.Slot);
+            _disabled.Remove(p.Slot); _stHidden.Remove(p.Slot); _spawned.Remove(p.Slot);
             foreach (var k in _live.Keys.Where(k => k.Slot == p.Slot).ToList()) _live.Remove(k);
         }
         return HookResult.Continue;
     }
 
     // Por si connect_full llega antes de que el cliente esté del todo dentro: también tras su primera aparición.
+    // En cada aparición (vuelta de espectador o del AFK) el cliente puede haber perdido la HUD: se le reenvía todo.
     [GameEventHandler(HookMode.Post)]
     public HookResult OnSpawn(EventPlayerSpawn e, GameEventInfo i)
     {
-        if (e.Userid is { IsBot: false } p && Allowed(p) && !_stHidden.Contains(p.Slot) && !_live.Keys.Any(k => k.Slot == p.Slot) && !_recreatePending)
+        if (e.Userid is not { IsBot: false } p || !Allowed(p)) return HookResult.Continue;
+        if (_spawned.Add(p.Slot) && !_stHidden.Contains(p.Slot) && !_recreatePending)
         {
             _recreatePending = true;
             AddTimer(2f, () => { _recreatePending = false; Recreate(); Console.WriteLine($"[SurfHud] recreated after spawn of {p.PlayerName}"); });
+            return HookResult.Continue;
         }
+        var slot = p.Slot;
+        AddTimer(0.5f, () =>
+        {
+            foreach (var k in _live.Keys.Where(k => k.Slot == slot).ToList()) _live.Remove(k);
+            if (Utilities.GetPlayerFromSlot(slot) is { IsValid: true } again) Push(again);
+        });
         return HookResult.Continue;
     }
 
